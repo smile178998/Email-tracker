@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>追踪面板-bitches so so la</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; font-size: 14px; }
+  header { background: #fff; border-bottom: 1px solid #e5e5e5; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 16px; font-weight: 600; }
+  .badge { background: #10b981; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 99px; }
+  .container { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+
+  /* ── create card ── */
+  .card { background: #fff; border-radius: 10px; border: 1px solid #e5e5e5; padding: 20px; margin-bottom: 16px; }
+  .create-row { display: flex; gap: 8px; }
+  .create-row input { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; }
+  .create-row input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+
+  /* ── buttons ── */
+  .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: #6366f1; color: #fff; }
+  .btn-danger  { background: #ef4444; color: #fff; padding: 4px 10px; font-size: 12px; }
+  .btn-copy    { background: #e5e7eb; color: #374151; padding: 4px 10px; font-size: 12px; }
+  .copied      { background: #10b981 !important; color: #fff !important; }
+
+  /* ── tracker item ── */
+  .tracker-item { border: 1px solid #e5e5e5; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .tracker-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #fafafa; cursor: pointer; user-select: none; flex-wrap: wrap; }
+  .tracker-header:hover { background: #f3f4f6; }
+  .tracker-label { font-weight: 600; flex: 1; min-width: 120px; }
+  .count-badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .badge-pixel { background: #6366f1; color: #fff; }
+  .badge-click { background: #f59e0b; color: #fff; }
+  .badge-zero  { background: #9ca3af; color: #fff; }
+  .last-time   { font-size: 12px; color: #6b7280; white-space: nowrap; }
+  .tracker-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ── embed boxes ── */
+  .events-section { display: none; padding: 16px; border-top: 1px solid #e5e5e5; }
+  .events-section.open { display: block; }
+  .embed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  @media(max-width:640px){ .embed-grid { grid-template-columns: 1fr; } }
+  .embed-box { background: #f8f9fa; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px; }
+  .embed-box .embed-title { font-size: 11px; color: #6b7280; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 4px; }
+  .embed-box .embed-desc  { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+  .embed-box .embed-tag   { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px; margin-bottom: 8px; font-weight: 600; }
+  .tag-gmail   { background: #fde8e8; color: #c53030; }
+  .tag-outlook { background: #e8f0fe; color: #1a56db; }
+  .tag-all     { background: #e8fde8; color: #276749; }
+  .tag-warning { background: #fef3c7; color: #92400e; }
+  .embed-box code { font-family: 'Courier New', monospace; font-size: 11px; color: #374151; word-break: break-all; display: block; background: #fff; border: 1px solid #e5e5e5; border-radius: 4px; padding: 8px; margin-bottom: 8px; line-height: 1.5; }
+
+  /* ── click url builder ── */
+  .url-builder { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  .url-builder .embed-title { font-size: 11px; color: #92400e; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+  .url-builder-row { display: flex; gap: 8px; }
+  .url-builder-row input { flex: 1; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; outline: none; }
+  .url-builder-row input:focus { border-color: #f59e0b; }
+  .url-builder-row button { padding: 6px 12px; background: #f59e0b; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .generated-url-wrap { margin-top: 8px; display: none; }
+  .generated-url-wrap.visible { display: block !important; }
+  .generated-url-wrap code { font-family: 'Courier New', monospace; font-size: 11px; color: #374151; word-break: break-all; display: block; background: #fff; border: 1px solid #e5e5e5; border-radius: 4px; padding: 8px; margin-bottom: 6px; min-height: 20px; }
+
+  /* ── events table ── */
+  .event-type-label { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+  .type-pixel { background: #ede9fe; color: #5b21b6; }
+  .type-click { background: #fef3c7; color: #92400e; }
+  .events-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .events-table th { text-align: left; font-weight: 600; font-size: 11px; color: #6b7280; padding: 6px 8px; border-bottom: 1px solid #e5e5e5; text-transform: uppercase; letter-spacing: .04em; }
+  .events-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+  .events-table tr:last-child td { border-bottom: none; }
+  .ua-cell { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7280; }
+  .empty { text-align: center; color: #9ca3af; padding: 32px; font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+</style>
+</head>
+<body>
+<header>
+  <span class="dot"></span>
+  <h1>追踪面板</h1>
+  <span class="badge" id="total-badge">0 个追踪器</span>
+</header>
+
+<div class="container">
+  <div class="card">
+    <div class="create-row">
+      <input type="text" id="label-input" placeholder="追踪器名称，例如：报价单邮件-客户A" />
+      <button class="btn btn-primary" onclick="createTracker()">＋ 新建追踪器</button>
+    </div>
+  </div>
+  <div id="list"><div class="empty">正在加载…</div></div>
+</div>
+
+<script>
+const HOST = 'https://personal-web-ebon-seven.vercel.app';
+
+async function load() {
+  const res = await fetch('/api/trackers');
+  const trackers = await res.json();
+  render(trackers);
+}
+
+function render(trackers) {
+  document.getElementById('total-badge').textContent = trackers.length + ' 个追踪器';
+  const el = document.getElementById('list');
+  if (!trackers.length) {
+    el.innerHTML = '<div class="empty">还没有追踪器，点击上方新建一个</div>';
+    return;
+  }
+  el.innerHTML = trackers.map(t => buildItem(t)).join('');
+}
+
+function buildItem(t) {
+  const clickBase = `${HOST}/click/${t.id}?url=`;
+  const savedTarget = localStorage.getItem('target-' + t.id) || '';
+  const isExpanded = localStorage.getItem('expanded-' + t.id) === 'true';
+  const savedUrl = localStorage.getItem('gen-url-' + t.id) || '';
+  const savedShortUrl = localStorage.getItem('short-url-' + t.id) || '';
+  const isVisible = savedUrl ? 'visible' : '';
+  const showShortUrl = savedShortUrl ? 'block' : 'none';
+
+  const pixelBadge = t.pixels > 0
+    ? `<span class="count-badge badge-pixel" title="邮件打开触发">📧 ${t.pixels} 次打开</span>`
+    : '';
+  const clickBadge = t.clicks > 0
+    ? `<span class="count-badge badge-click" title="链接点击触发">🔗 ${t.clicks} 次点击</span>`
+    : '';
+  const totalBadge = t.opens === 0
+    ? `<span class="count-badge badge-zero">0 次</span>`
+    : `${pixelBadge}${clickBadge}`;
+
+  const lastTime = t.lastOpen ? `<span class="last-time">最近：${fmt(t.lastOpen)}</span>` : '';
+
+  const tableHtml = t.events.length === 0
+    ? '<div class="empty">等待第一次触发…</div>'
+    : `<table class="events-table">
+        <thead><tr>
+          <th>类型</th><th>时间</th><th>IP</th><th>城市</th><th>省份</th><th>国家</th><th>时区</th><th>客户端</th>
+        </tr></thead>
+        <tbody>
+          ${[...t.events].reverse().map(e => {
+            const typeLabel = e.type === 'pixel' 
+              ? '<span class="event-type-label type-pixel">📧 打开</span>'
+              : e.type === 'svg'
+              ? '<span class="event-type-label type-pixel">📧 打开(SVG)</span>'
+              : '<span class="event-type-label type-click">🔗 点击</span>';
+            return `
+            <tr>
+              <td>${typeLabel}</td>
+              <td>${fmt(e.time)}</td>
+              <td><code style="font-size:11px">${e.ip}</code></td>
+              <td>${e.city}</td>
+              <td>${e.region}</td>
+              <td>${e.country}</td>
+              <td style="font-size:11px;color:#6b7280">${e.timezone}</td>
+              <td style="font-size:11px">${e.emailClient || '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+
+  return `
+    <div class="tracker-item">
+      <div class="tracker-header" onclick="toggle('${t.id}')">
+        <span class="tracker-label">${esc(t.label)}</span>
+        ${totalBadge}
+        ${lastTime}
+        <div class="tracker-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-danger" onclick="del('${t.id}')">删除</button>
+        </div>
+      </div>
+
+      <div class="events-section ${isExpanded ? 'open' : ''}" id="ev-${t.id}">
+
+        <!-- pixel tracking (PNG) -->
+        <div class="embed-box" style="margin-bottom:16px;background:#f0f9ff;border-color:#0ea5e9">
+          <div class="embed-title" style="color:#0369a1">📧 邮件打开追踪 (PNG)</div>
+          <div class="embed-desc">对方<strong>打开邮件</strong>时自动加载图片触发，适用于大部分邮件客户端</div>
+          <span class="embed-tag tag-gmail">⚠️ Gmail（代理 IP）</span>
+          <span class="embed-tag tag-outlook">✅ Outlook 网页版</span>
+          <span class="embed-tag tag-all">✅ 大部分客户端</span>
+          <div class="embed-desc" style="margin-top:8px">将以下代码插入到邮件 HTML 中：</div>
+          <code>&lt;img src="${HOST}/pixel/${t.id}" width="1" height="1" style="display:none" alt=""&gt;</code>
+          <button class="btn btn-copy" onclick="cp('pixel-code-${t.id}',this)">复制代码</button>
+          <code id="pixel-code-${t.id}" style="display:none">&lt;img src="${HOST}/pixel/${t.id}" width="1" height="1" style="display:none" alt=""&gt;</code>
+        </div>
+
+        <!-- pixel tracking (SVG) -->
+        <div class="embed-box" style="margin-bottom:16px;background:#fdf4ff;border-color:#c026d3">
+          <div class="embed-title" style="color:#a21caf">📧 邮件打开追踪 (SVG)</div>
+          <div class="embed-desc">SVG 格式替代方案，某些客户端对 SVG 支持更好</div>
+          <span class="embed-tag tag-gmail">⚠️ Gmail（代理 IP）</span>
+          <span class="embed-tag tag-all">✅ SVG 支持的客户端</span>
+          <div class="embed-desc" style="margin-top:8px">将以下代码插入到邮件 HTML 中：</div>
+          <code>&lt;img src="${HOST}/svg/${t.id}" width="1" height="1" style="display:none" alt=""&gt;</code>
+          <button class="btn btn-copy" onclick="cp('svg-code-${t.id}',this)">复制代码</button>
+          <code id="svg-code-${t.id}" style="display:none">&lt;img src="${HOST}/svg/${t.id}" width="1" height="1" style="display:none" alt=""&gt;</code>
+        </div>
+
+        <!-- link click tracking -->
+        <div class="embed-box" style="margin-bottom:16px;background:#ecfdf5;border-color:#10b981">
+          <div class="embed-title" style="color:#047857">🔗 链接点击追踪</div>
+          <div class="embed-desc">对方<strong>点击链接</strong>时触发，获取真实 IP，适用于 Gmail 和 Outlook 桌面版</div>
+          <span class="embed-tag tag-gmail">✅ Gmail（真实 IP）</span>
+          <span class="embed-tag tag-outlook">✅ Outlook 桌面版</span>
+          <span class="embed-tag tag-all">✅ 所有客户端</span>
+          <div class="url-builder" id="ub-${t.id}" style="background:#fff;border-color:#d1d5db">
+            <div class="embed-title">目标 URL（点击后跳转到哪里）</div>
+            <div class="url-builder-row">
+              <input type="text" id="target-${t.id}" placeholder="https://example.com/报价单.pdf" value="${esc(savedTarget)}" oninput="saveTarget('${t.id}', this.value)" />
+              <button onclick="buildClickUrl('${t.id}')" style="background:#10b981">生成</button>
+            </div>
+            <div class="generated-url-wrap ${isVisible}" id="gen-wrap-${t.id}">
+              <code id="gen-url-${t.id}">${esc(savedUrl)}</code>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn btn-copy" onclick="cp('gen-url-${t.id}',this)">复制追踪链接</button>
+                <button class="btn btn-copy" onclick="cpHtmlLink('${t.id}',this)">复制为 HTML &lt;a&gt; 标签</button>
+                <button class="btn btn-copy" onclick="generateShortUrl('${t.id}',this)" style="background:#6366f1;color:#fff">生成短链接</button>
+              </div>
+              <div id="short-url-${t.id}" style="margin-top:8px;display:${showShortUrl}">
+                <code id="short-url-code-${t.id}" style="background:#f0f9ff;border-color:#0ea5e9">${esc(savedShortUrl)}</code>
+                <button class="btn btn-copy" onclick="cp('short-url-code-${t.id}',this)" style="margin-top:4px;background:#0ea5e9;color:#fff">复制短链接</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- events log -->
+        ${tableHtml}
+      </div>
+    </div>`;
+}
+
+function buildClickUrl(id) {
+  const target = document.getElementById('target-' + id).value.trim();
+  if (!target) { alert('请先填写目标 URL'); return; }
+  const trackUrl = `${HOST}/click/${id}?url=${encodeURIComponent(target)}`;
+  const genUrlEl = document.getElementById('gen-url-' + id);
+  const genWrapEl = document.getElementById('gen-wrap-' + id);
+  if (genUrlEl && genWrapEl) {
+    genUrlEl.textContent = trackUrl;
+    genWrapEl.classList.add('visible');
+    localStorage.setItem('gen-url-' + id, trackUrl);
+  }
+}
+
+function saveTarget(id, value) {
+  localStorage.setItem('target-' + id, value);
+}
+
+function cpHtmlLink(id, btn) {
+  const url = document.getElementById('gen-url-' + id).textContent;
+  const html = `<a href="${url}">点击查看文件</a>`;
+  navigator.clipboard.writeText(html).then(() => flash(btn));
+}
+
+async function generateShortUrl(id, btn) {
+  const url = document.getElementById('gen-url-' + id).textContent;
+  if (!url) { alert('请先生成追踪链接'); return; }
+
+  btn.textContent = '生成中...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/shorten', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+
+    if (data.shortUrl) {
+      document.getElementById('short-url-code-' + id).textContent = data.shortUrl;
+      document.getElementById('short-url-' + id).style.display = 'block';
+      localStorage.setItem('short-url-' + id, data.shortUrl);
+    } else {
+      alert('生成短链接失败：' + (data.error || '未知错误'));
+    }
+  } catch (err) {
+    alert('生成短链接失败：' + err.message);
+  } finally {
+    btn.textContent = '生成短链接';
+    btn.disabled = false;
+  }
+}
+
+function toggle(id) {
+  const section = document.getElementById('ev-' + id);
+  section.classList.toggle('open');
+  const isOpen = section.classList.contains('open');
+  localStorage.setItem('expanded-' + id, isOpen);
+}
+
+function fmt(iso) {
+  return new Date(iso).toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function cp(elId, btn) {
+  navigator.clipboard.writeText(document.getElementById(elId).textContent).then(() => flash(btn));
+}
+
+function flash(btn) {
+  const orig = btn.textContent;
+  btn.textContent = '✓ 已复制';
+  btn.classList.add('copied');
+  setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1500);
+}
+
+async function createTracker() {
+  const label = document.getElementById('label-input').value.trim() || '新追踪器';
+  const res = await fetch('/api/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ label }) });
+  const data = await res.json();
+  document.getElementById('label-input').value = '';
+  localStorage.setItem('expanded-' + data.id, 'true');
+  load();
+}
+
+async function del(id) {
+  if (!confirm('删除这个追踪器及所有记录？')) return;
+  await fetch('/api/tracker/' + id, { method:'DELETE' });
+  localStorage.removeItem('target-' + id);
+  localStorage.removeItem('expanded-' + id);
+  localStorage.removeItem('gen-url-' + id);
+  localStorage.removeItem('short-url-' + id);
+  load();
+}
+
+document.getElementById('label-input').addEventListener('keydown', e => { if (e.key==='Enter') createTracker(); });
+
+load();
+setInterval(load, 5000);
+</script>
+</body>
+</html>
